@@ -1,0 +1,20 @@
+[project]
+name = "brain-gym"
+version = "0.1.0"
+description = "Active reading brain gym for generating and grading article-based quiz sessions"
+readme = "README.md"
+requires-python = ">=3.9.10"
+dependencies = [
+    "openai>=1.30",
+    "requests",
+    "trafilatura>=1.8",
+    "youtube-transcript-api>=1.0",
+    "faster-whisper>=1.0",
+    "sounddevice>=0.4.6",
+    "numpy",
+    "python-dotenv>=1.0.0",
+    "av<14",
+]
+
+[tool.uv]
+package = false

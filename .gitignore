@@ -1,0 +1,6 @@
+.env
+reading_sessions.db
+run
+tmp_whisper.py
+.venv
+__pycache__/
