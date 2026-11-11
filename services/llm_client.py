@@ -173,8 +173,8 @@ def print_score_summary(grade: dict[str, Any]) -> None:
         print("  feedback:", grade["feedback"])
     if grade.get("hint"):
         print("  hint:", grade["hint"])
-    if grade.get("missed_points"):
-        print("  missed points:", "; ".join(grade["missed_points"]))
+    # if grade.get("missed_points"):
+    #     print("  missed points:", "; ".join(grade["missed_points"]))
 
 
 def choose_model_for_task(kind: str, explicit_model: str | None = None) -> str:

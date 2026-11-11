@@ -22,14 +22,14 @@ def run_offline_mode(args: Any, repo: Repo | None = None) -> None:
         source_value=source_value,
         article_text=article,
         title=title,
-        config={"questions": getattr(args, "questions", 5), "rounds": getattr(args, "rounds", 3)},
+        config={"questions": getattr(args, "questions", 10), "rounds": getattr(args, "rounds", 3)},
     )
     print(f"Offline session started (session_id={session_id}).")
 
     focus: list[str] = []
     rounds = max(1, int(getattr(args, "rounds", 3) or 3))
     for round_no in range(1, rounds + 1):
-        batch = generate_question_bank(client, generate_model, article, int(getattr(args, "questions", 5) or 5), focus if focus else None)
+        batch = generate_question_bank(client, generate_model, article, int(getattr(args, "questions", 10) or 10), focus if focus else None)
         if not batch:
             break
 

@@ -1,31 +1,75 @@
 # Brain Gym — Active Reading
 
-An interactive quiz loop that turns any article into a retrieval-practice session.
+Brain Gym is an active-reading app that turns an article into a guided practice loop.
+It supports both live practice and offline question-bank workflows, persists progress in SQLite,
+and helps the user keep returning to weak points until they improve.
 
-## How it works
+## What it does
 
-1. You give it an article (URL, file, or pasted text).
-2. The LLM writes questions at four levels: recall, comprehension, inference, synthesis.
-3. You answer each one out loud (voice-to-text) or by typing.
-4. The LLM grades each answer on correctness, completeness, and clarity (0–5),
-   and lists the points you missed.
-5. The next round of questions specifically targets what you missed.
-6. Repeat until you say "stop". You get a session summary at the end.
+1. Accepts an article from a URL, YouTube transcript, local file, or pasted text.
+2. Generates questions grounded in the article content.
+3. Lets the user answer either live or later from saved question sets.
+4. Grades answers with a rubric-style LLM evaluation.
+5. Tracks correctness, completeness, clarity, evidence use, and missed points.
+6. Generates follow-up questions from weak areas.
+7. Saves progress in SQLite so sessions can be resumed, reviewed, or re-run later.
 
-This is retrieval practice (the "testing effect") applied to real reading —
-one of the better-supported ways to keep cognition active.
+This is retrieval practice (the "testing effect") applied to real reading — one of the more promising ways to keep cognition active.
+
+## Modes
+
+### Live mode
+Live mode is the most direct workflow:
+1. Generate a question.
+2. User answers it.
+3. LLM scores the answer.
+4. Show feedback and a hint.
+5. Retry until the target score is reached or the user skips.
+6. Continue to the next question.
+
+Example:
+
+```bash
+python brain_gym_app.py --mode live --file article.txt --target-score 4.5 --max-retries 2
+```
+
+### Offline mode
+Offline mode creates a saved question bank in SQLite, letting the user answer questions later:
+1. Generate a question set.
+2. Save it to SQLite.
+3. User answers questions from the database.
+4. Grade the saved answers.
+5. Generate another round based on missed points.
+6. Repeat as needed.
+
+Example:
+
+```bash
+python brain_gym_app.py --mode offline --file article.txt --questions 5 --rounds 3
+```
+
+### Review mode
+Review mode is designed to re-visit weak points from previous sessions and generate follow-up practice around the user’s gaps.
+
+Example:
+
+```bash
+python brain_gym_app.py --mode review --session-id 12
+```
+
+### Mixed mode
+A future-mode option that allows the user to generate one bank and then choose whether to practice live, offline, or review weak points.
 
 ## Setup
 
+Use the repo virtual environment for the project:
+
 ```bash
 cd brain-gym
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-Then set your LLM credentials (any OpenAI-compatible endpoint works —
-OpenAI, OpenRouter, Together, or a local Ollama server). The project now loads
-variables from a `.env` file automatically if present:
+Set the LLM keys and model settings in `.env` or your shell:
 
 ```bash
 # .env
@@ -33,10 +77,9 @@ LLM_API_KEY=sk-...
 LLM_MODEL=gpt-4.1-mini
 LLM_GRADE_MODEL=gpt-4.1-mini
 LLM_BASE_URL=https://api.openai.com/v1
-WHISPER_MODE=local
 ```
 
-Or set them manually in your shell:
+Optional:
 
 ```bash
 export LLM_API_KEY=sk-...
@@ -45,39 +88,62 @@ export LLM_GRADE_MODEL=gpt-4.1-mini
 export LLM_BASE_URL=https://api.openai.com/v1
 ```
 
-## Use
+## Usage
 
 ```bash
-python active_reading.py --url https://www.economist.com/some-article
-python active_reading.py --youtube https://www.youtube.com/watch?v=...   # quizzes the video's transcript
-python active_reading.py --file article.txt
-python active_reading.py --review     # re-quiz the weak spots from your last session
-python active_reading.py --stats      # progress across past sessions
+python brain_gym_app.py --mode live --url https://example.com/article
+python brain_gym_app.py --mode live --youtube https://www.youtube.com/watch?v=...
+python brain_gym_app.py --mode live --file article.txt
+python brain_gym_app.py --mode live --text "Paste article content here"
+
+python brain_gym_app.py --mode offline --file article.txt --questions 5 --rounds 3
+python brain_gym_app.py --mode review --session-id 12
+python brain_gym_app.py --help
 ```
 
-Speak your answers when prompted (up to 90 seconds each; Ctrl+C to stop
-recording early). Say "stop" to end the session and get your summary.
-Add `--no-voice` to type instead, `--questions 5` for more questions per round,
-and `--model gpt-4.1-mini --grade-model gpt-4.1-mini` to pin a specific cost-efficient combo.
+## SQLite-backed progress
 
-### Voice options
+The app keeps learning progress in the local SQLite database (`reading_sessions.db`).
+This includes:
+- sessions
+- questions
+- attempts
+- grades
+- missed-point tags
+- review queue and scheduling data (planned next)
 
-| Mode | How | Notes |
-|---|---|---|
-| `local` (default) | faster-whisper runs on your machine | Free, offline, private |
-| `api` | OpenAI Whisper API | Better accuracy, costs pennies |
-| `off` | type answers | `--no-voice` |
+This makes it possible to resume sessions, re-grade content, and revisit weak points.
 
-```bash
-export WHISPER_MODE=api   # or local / off
-```
+## Scoring model
 
-## Roadmap ideas
+Answers are evaluated on:
+- correctness
+- completeness
+- clarity
+- evidence use
+- overall score
 
-- Difficulty adaptation: increase question depth when you score 4+ consistently.
-- True spaced repetition: schedule reviews of missed points at growing intervals (1 day, 3 days, 7 days) instead of only "latest session".
-- Progress dashboard: score trends and a streak calendar across sessions.
-- Web UI or desktop app shell around the core loop.
+The app also records:
+- missed points
+- short feedback
+- improvement hints
+
+## Current roadmap status
+
+Implemented:
+- CLI app entrypoint
+- SQLite bootstrap and repo layer
+- article loading from URL, text, file, and YouTube transcript
+- live workflow
+- offline workflow
+- shared LLM client and grading utilities
+
+Planned next:
+- review-mode weak-point targeting
+- spaced repetition scheduling
+- analytics and summaries
+- mixed-mode launch flow
+- optional web or desktop UI
 
 ## Notes on the science
 

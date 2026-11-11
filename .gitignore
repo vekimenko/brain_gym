@@ -4,3 +4,4 @@ run
 tmp_whisper.py
 .venv
 __pycache__/
+txt
