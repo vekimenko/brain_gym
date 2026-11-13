@@ -9,7 +9,7 @@ and helps the user keep returning to weak points until they improve.
 1. Accepts an article from a URL, YouTube transcript, local file, or pasted text.
 2. Generates questions grounded in the article content.
 3. Lets the user answer either live or later from saved question sets.
-4. Grades answers with a rubric-style LLM evaluation.
+4. Grades answers either with the existing LLM rubric or locally with sentence-transformers.
 5. Tracks correctness, completeness, clarity, evidence use, and missed points.
 6. Generates follow-up questions from weak areas.
 7. Saves progress in SQLite so sessions can be resumed, reviewed, or re-run later.
@@ -30,7 +30,7 @@ Live mode is the most direct workflow:
 Example:
 
 ```bash
-python brain_gym_app.py --mode live --file article.txt --target-score 4.5 --max-retries 2
+uv run python brain_gym_app.py --mode live --file article.txt --target-score 4.5 --max-retries 2
 ```
 
 ### Offline mode
@@ -45,7 +45,19 @@ Offline mode creates a saved question bank in SQLite, letting the user answer qu
 Example:
 
 ```bash
-python brain_gym_app.py --mode offline --file article.txt --questions 5 --rounds 3
+uv run python brain_gym_app.py --mode offline --file article.txt --questions 5 --rounds 3
+```
+
+Offline grading can be run entirely without an LLM by adding `--offline-grading`:
+
+```bash
+uv run python brain_gym_app.py --mode offline --file article.txt --questions 5 --offline-grading
+```
+
+You can resume a session later with:
+
+```bash
+uv run python brain_gym_app.py --mode offline --session-id 12 --offline-grading
 ```
 
 ### Review mode
@@ -54,7 +66,7 @@ Review mode is designed to re-visit weak points from previous sessions and gener
 Example:
 
 ```bash
-python brain_gym_app.py --mode review --session-id 12
+uv run python brain_gym_app.py --mode review --session-id 12
 ```
 
 ### Mixed mode
@@ -62,14 +74,14 @@ A future-mode option that allows the user to generate one bank and then choose w
 
 ## Setup
 
-Use the repo virtual environment for the project:
+Use the repo's managed Python environment via `uv`:
 
 ```bash
 cd brain-gym
-.venv\Scripts\python.exe -m pip install -r requirements.txt
+uv sync
 ```
 
-Set the LLM keys and model settings in `.env` or your shell:
+Set the LLM keys and model settings in `.env` or your shell if you want the LLM-based grading path:
 
 ```bash
 # .env
@@ -91,14 +103,16 @@ export LLM_BASE_URL=https://api.openai.com/v1
 ## Usage
 
 ```bash
-python brain_gym_app.py --mode live --url https://example.com/article
-python brain_gym_app.py --mode live --youtube https://www.youtube.com/watch?v=...
-python brain_gym_app.py --mode live --file article.txt
-python brain_gym_app.py --mode live --text "Paste article content here"
+uv run python brain_gym_app.py --mode live --url https://example.com/article
+uv run python brain_gym_app.py --mode live --youtube https://www.youtube.com/watch?v=...
+uv run python brain_gym_app.py --mode live --file article.txt
+uv run python brain_gym_app.py --mode live --text "Paste article content here"
 
-python brain_gym_app.py --mode offline --file article.txt --questions 5 --rounds 3
-python brain_gym_app.py --mode review --session-id 12
-python brain_gym_app.py --help
+uv run python brain_gym_app.py --mode offline --file article.txt --questions 5 --rounds 3
+uv run python brain_gym_app.py --mode offline --file article.txt --questions 5 --offline-grading
+uv run python brain_gym_app.py --mode offline --session-id 12 --offline-grading
+uv run python brain_gym_app.py --mode review --session-id 12
+uv run python brain_gym_app.py --help
 ```
 
 ## SQLite-backed progress
@@ -110,6 +124,7 @@ This includes:
 - attempts
 - grades
 - missed-point tags
+- saved `key_points` for local offline grading
 - review queue and scheduling data (planned next)
 
 This makes it possible to resume sessions, re-grade content, and revisit weak points.
@@ -128,6 +143,11 @@ The app also records:
 - short feedback
 - improvement hints
 
+For offline grading, the local evaluator uses:
+- sentence embedding similarity between the ideal answer and the user answer
+- per-key-point coverage checks
+- a simple lexical overlap fallback when the model is unavailable
+
 ## Current roadmap status
 
 Implemented:
@@ -136,7 +156,9 @@ Implemented:
 - article loading from URL, text, file, and YouTube transcript
 - live workflow
 - offline workflow
-- shared LLM client and grading utilities
+- resumable offline sessions
+- optional local offline grading via sentence-transformers
+- shared grading utilities and time-aware question persistence
 
 Planned next:
 - review-mode weak-point targeting

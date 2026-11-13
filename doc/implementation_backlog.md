@@ -7,6 +7,7 @@ Build a modular active-reading application that supports:
 - review mode for weak points
 - spaced repetition and adaptive scheduling
 - optional web/desktop frontend in a later phase
+- offline grading for saved question banks without requiring external API access
 
 The product must be SQLite-first, LLM-assisted, and structured so each workflow can be tested independently.
 
@@ -112,6 +113,7 @@ CREATE TABLE questions (
     level TEXT NOT NULL,                  -- recall, comprehension, inference, synthesis
     question_text TEXT NOT NULL,
     ideal_answer TEXT,
+    key_points TEXT,
     source_context TEXT,
     status TEXT NOT NULL DEFAULT 'pending',
     created_at TEXT NOT NULL,
@@ -119,6 +121,8 @@ CREATE TABLE questions (
     FOREIGN KEY(session_id) REFERENCES sessions(id)
 );
 ```
+
+`key_points` stores a JSON array of short factual claims used by the local offline grader to estimate completeness and missed points.
 
 ### 4.3 attempts
 ```sql
@@ -132,6 +136,8 @@ CREATE TABLE attempts (
     FOREIGN KEY(question_id) REFERENCES questions(id)
 );
 ```
+
+Offline grading does not change the attempt model; it simply creates a grade record from the locally computed score instead of an LLM call.
 
 ### 4.4 grades
 ```sql
@@ -216,12 +222,12 @@ Files:
 - `app/config.py`
 - `app/cli.py`
 - `README.md`
-- `requirements.txt`
+- `pyproject.toml`
 - `doc/*.md`
 
 Commands:
 ```bash
-python brain_gym_app.py --help
+uv run python brain_gym_app.py --help
 ```
 
 Acceptance criteria:
@@ -362,22 +368,30 @@ Tasks:
 6. Judge answers in batch.
 7. Save grade results and missed-point tags.
 8. Generate follow-up rounds based on missed points.
+9. Add an optional `--offline-grading` mode using sentence-transformer similarity + key-point coverage.
+10. Persist `key_points` with each saved question and allow resume via `--session-id`.
 
 Files:
 - `workflows/offline_mode.py`
 - `db/repo.py`
+- `db/bootstrap.py`
+- `services/offline_grader.py`
 - `services/review_service.py`
 - `tests/test_db_repo.py`
 
 Commands:
 ```bash
-python brain_gym_app.py --mode offline --file article.txt --questions 5 --rounds 3
+uv run python brain_gym_app.py --mode offline --file article.txt --questions 5 --rounds 3
+uv run python brain_gym_app.py --mode offline --file article.txt --questions 5 --offline-grading
+uv run python brain_gym_app.py --mode offline --session-id 12 --offline-grading
 ```
 
 Acceptance criteria:
 - question banks save correctly to SQLite
 - offline answers can be graded and persisted
 - follow-up round generation is tied to missed points
+- `--offline-grading` can score saved answers without using the LLM grading API
+- a resumed session can continue answering pending questions without losing prior work
 
 ---
 

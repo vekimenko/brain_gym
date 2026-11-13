@@ -36,6 +36,7 @@ def ensure_db() -> None:
             level TEXT NOT NULL,
             question_text TEXT NOT NULL,
             ideal_answer TEXT,
+            key_points TEXT,
             source_context TEXT,
             status TEXT NOT NULL DEFAULT 'pending',
             created_at TEXT NOT NULL,
@@ -44,6 +45,9 @@ def ensure_db() -> None:
         )
         """
     )
+    columns = conn.execute("PRAGMA table_info(questions)").fetchall()
+    if not any(column[1] == "key_points" for column in columns):
+        conn.execute("ALTER TABLE questions ADD COLUMN key_points TEXT")
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS attempts (

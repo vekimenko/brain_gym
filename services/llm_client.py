@@ -75,10 +75,11 @@ def generate_question_bank(client: Any, model: str, article: str, count: int, fo
     prompt = (
         context
         + f"Generate {count} active-reading questions grounded only in the article. "
-        + "Each question must include: id, level, question, ideal_answer. "
+        + "Each question must include: id, level, question, ideal_answer, key_points. "
+        + "key_points should be a list of 3-8 short factual claims that the ideal answer covers. "
         + "Use levels like recall, comprehension, inference, and synthesis. "
         + "If focus points are provided, target them and closely related ideas. "
-        + 'Return JSON in the form {"questions": [{"id": 1, "level": "recall", "question": "...", "ideal_answer": "..."}]}'
+        + 'Return JSON in the form {"questions": [{"id": 1, "level": "recall", "question": "...", "ideal_answer": "...", "key_points": ["...", "..."]}]} '
     )
     payload = llm_json(
         client,
@@ -93,12 +94,21 @@ def generate_question_bank(client: Any, model: str, article: str, count: int, fo
     for idx, item in enumerate(questions, start=1):
         if not isinstance(item, dict):
             continue
+        raw_points = item.get("key_points") or item.get("keyPoints") or []
+        if isinstance(raw_points, str):
+            try:
+                raw_points = json.loads(raw_points)
+            except json.JSONDecodeError:
+                raw_points = [raw_points]
+        if not isinstance(raw_points, list):
+            raw_points = [str(raw_points)]
         cleaned.append(
             {
                 "id": int(item.get("id", idx)),
                 "level": str(item.get("level", "recall")),
                 "question": str(item.get("question") or item.get("text") or "").strip(),
                 "ideal_answer": str(item.get("ideal_answer") or item.get("expected_answer") or "").strip(),
+                "key_points": [str(point).strip() for point in raw_points if str(point).strip()][:8],
             }
         )
     return cleaned[:count]
