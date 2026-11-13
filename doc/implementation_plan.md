@@ -81,6 +81,8 @@ SQLite tables and schema to support:
 - Resume or continue sessions
 - Review only weak points from prior sessions
 - Human-in-the-loop answer entry from DB browser or CLI
+- Optional offline grading using a local sentence-transformer model and key-point coverage checks
+- Persist `key_points` alongside each saved question so a later grading pass can run without LLM access
 
 ### Feature group C — Progress intelligence
 - Track per-question and per-session scoring trends
@@ -174,10 +176,13 @@ Steps:
 5. Save per-question metrics and missed points
 6. Generate follow-up questions targeting previously missed content
 7. Record completed offline session state
+8. Add an `--offline-grading` mode that uses sentence-transformer similarity and key-point coverage without an LLM call
+9. Store `key_points` per question and allow `--session-id` resumption of any unfinished offline session
 
 Outputs:
 - Working offline study mode
 - Database-driven question and answer lifecycle
+- Local, offline grading path that preserves the same scoring structure as the LLM-based evaluator
 
 ### Phase 4 — Review and weak-point loop
 Goals:

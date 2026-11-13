@@ -17,8 +17,9 @@ load_env()
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
-    if not any([args.url, args.youtube, args.file, args.text]):
-        parser.error("Provide an article source using --url, --youtube, --file, or --text.")
+    resume_session_id = getattr(args, "resume_session_id", None) or getattr(args, "session_id", None)
+    if not any([args.url, args.youtube, args.file, args.text]) and not resume_session_id:
+        parser.error("Provide an article source using --url, --youtube, --file, or --text, or resume an existing session with --session-id.")
 
     if args.model:
         os.environ["LLM_MODEL"] = args.model

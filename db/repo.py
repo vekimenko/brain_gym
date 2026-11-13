@@ -31,15 +31,15 @@ class Repo:
         conn.close()
         return session_id
 
-    def add_question(self, session_id: int, question_index: int, level: str, question_text: str, ideal_answer: str | None = None, source_context: str | None = None) -> int:
+    def add_question(self, session_id: int, question_index: int, level: str, question_text: str, ideal_answer: str | None = None, source_context: str | None = None, key_points: list[str] | None = None) -> int:
         conn = self.connect()
         now = __import__("time").strftime("%Y-%m-%d %H:%M:%S")
         row = conn.execute(
             """
-            INSERT INTO questions (session_id, question_index, level, question_text, ideal_answer, source_context, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+            INSERT INTO questions (session_id, question_index, level, question_text, ideal_answer, key_points, source_context, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
             """,
-            (session_id, question_index, level, question_text, ideal_answer or "", source_context or "", now, now),
+            (session_id, question_index, level, question_text, ideal_answer or "", json.dumps(key_points or [], ensure_ascii=False), source_context or "", now, now),
         )
         conn.commit()
         qid = row.lastrowid
@@ -52,6 +52,18 @@ class Repo:
             "SELECT * FROM questions WHERE session_id = ? AND status = 'pending' ORDER BY question_index ASC",
             (session_id,),
         ).fetchall()
+        conn.close()
+        return rows
+
+    def list_session_questions(self, session_id: int, status: str | None = None):
+        conn = self.connect()
+        query = "SELECT * FROM questions WHERE session_id = ?"
+        params: list[Any] = [session_id]
+        if status:
+            query += " AND status = ?"
+            params.append(status)
+        query += " ORDER BY question_index ASC"
+        rows = conn.execute(query, tuple(params)).fetchall()
         conn.close()
         return rows
 
